@@ -1,0 +1,52 @@
+# ============================================================
+# AutoCare - ambiente de desenvolvimento (Docker Compose)
+#
+# Serviços:
+#   app   -> PHP 8.3 + Laravel   (http://localhost:8000)
+#   pgsql -> PostgreSQL 17       (banco: autocare / schema: leonardo)
+#
+# Comandos úteis (executar na pasta do projeto):
+#   docker compose up -d --build        sobe os containers
+#   docker compose exec app php artisan migrate --seed
+#   docker compose logs -f app          acompanha os logs
+#   docker compose down                 derruba os containers
+# ============================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autocare-app
+    ports:
+      - "8000:80"       # navegador -> http://localhost:8000
+    volumes:
+      - .:/var/www/html # código do projeto compartilhado com o container
+    env_file:
+      - .env            # o Laravel lê as configurações deste arquivo
+    depends_on:
+      pgsql:
+        condition: service_healthy
+
+  pgsql:
+    image: postgres:17-alpine
+    container_name: autocare-pgsql
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: autocare       # banco criado na primeira subida
+      POSTGRES_USER: autocare
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - pgsql_data:/var/lib/postgresql/data
+      # Scripts executados UMA vez, quando o banco é criado
+      # (aqui criamos o schema "leonardo")
+      - ./database/docker/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autocare -d autocare"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgsql_data:

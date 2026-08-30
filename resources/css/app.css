@@ -1,0 +1,6 @@
+/* CSS principal do sistema: Tailwind + ajustes mínimos */
+@import "tailwindcss";
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
