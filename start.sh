@@ -16,7 +16,7 @@ php artisan migrate --force --no-interaction
 CONTAGEM=$(php artisan tinker --execute="echo \App\Models\Pessoa::query()->count();" 2>/dev/null | grep -E '^[0-9]+$' | tail -1)
 if [ "$CONTAGEM" = "0" ]; then
     echo "Banco vazio — rodando seeder..."
-    php artisan db:seed --no-interaction
+    php artisan db:seed --force --no-interaction
 else
     echo "Banco já populado — pulando seeder."
 fi
