@@ -7,7 +7,7 @@ services:
     name: autocare
     runtime: docker
     dockerfilePath: ./Dockerfile
-    startCommand: sh start.sh
+    dockerCommand: sh start.sh
     plan: free
     envVars:
       - key: APP_ENV

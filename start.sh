@@ -7,6 +7,9 @@
 # 3. Sobe o servidor na porta definida pelo Render ($PORT).
 set -e
 
+# Gera o manifesto de packages (a imagem compila o vendor com --no-scripts)
+php artisan package:discover --ansi
+
 php artisan migrate --force --no-interaction
 
 # Seeda só quando não há nenhuma pessoa cadastrada

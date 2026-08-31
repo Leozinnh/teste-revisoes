@@ -1,0 +1,17 @@
+# Não entram no build da imagem (são instalados pelos estágios do Dockerfile)
+.git
+.env
+node_modules
+vendor
+public/build
+public/hot
+.phpunit.cache
+.phpunit.result.cache
+storage/*.key
+database/docker
+docs
+Homestead.json
+Homestead.yaml
+auth.json
+npm-debug.log
+yarn-error.log
