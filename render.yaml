@@ -1,0 +1,44 @@
+# Blueprint do Render — deploy em um clique: Render → New Blueprint → este repositório.
+# As variáveis com "sync: false" são preenchidas no painel do Render na primeira vez.
+#
+# Alternativa manual: New Web Service → repositório → start command: sh start.sh
+services:
+  - type: web
+    name: autocare
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    startCommand: sh start.sh
+    plan: free
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false
+      - key: APP_URL
+        value: https://autocare.onrender.com
+      - key: APP_TIMEZONE
+        value: America/Sao_Paulo
+      - key: APP_LOCALE
+        value: pt_BR
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SCHEMA
+        value: leonardo
+      - key: SESSION_DRIVER
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: MAIL_MAILER
+        value: log
