@@ -18,8 +18,7 @@
             <p class="mt-2 text-sm leading-relaxed text-slate-600">
                 Apaga <strong>todas</strong> as pessoas, veículos e revisões, recria as
                 tabelas pelas migrations e insere os dados de demonstração do seeder.
-                Serve para descartar dados inválidos (ex.: as placas antigas com
-                <code class="rounded bg-slate-100 px-1">####</code> geradas pelo seeder com bug).
+                Serve para descartar dados inválidos.
                 Não tem volta.
             </p>
 
