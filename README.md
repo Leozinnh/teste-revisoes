@@ -110,7 +110,7 @@ Endpoints:
 | GET | `/api/pessoas/{id}` | Mostra uma pessoa |
 | PUT | `/api/pessoas/{id}` | Edita uma pessoa |
 | DELETE | `/api/pessoas/{id}` | Exclui uma pessoa (bloqueado se tiver veículos) |
-| GET | `/api/veiculos?pessoa_id=5` | Lista os veículos, paginada (opcional: só os de uma pessoa) |
+| GET | `/api/veiculos?pessoa_id=5&busca=toyota` | Lista os veículos, paginada (opcional: só os de uma pessoa e/ou busca por placa, marca, modelo ou proprietário) |
 | POST | `/api/veiculos` | Cadastra um veículo |
 | GET | `/api/veiculos/{id}` | Mostra um veículo |
 | PUT | `/api/veiculos/{id}` | Edita um veículo |
@@ -122,6 +122,8 @@ Endpoints:
 | DELETE | `/api/revisoes/{id}` | Exclui uma revisão |
 | GET | `/api/dashboard` | Indicadores e dados dos gráficos da página inicial |
 | GET | `/api/relatorios/{nome}` | Executa um dos 12 relatórios |
+| GET | `/api/manutencao` | Diz se o painel de manutenção está liberado |
+| POST | `/api/manutencao/limpar` | Apaga o banco e popula de novo (exige o `MANUTENCAO_TOKEN` do `.env` no corpo; opcional `com_volume=true`) |
 
 As três listagens (pessoas, veículos e revisões) são paginadas: aceitam `?page=` e `?per_page=` (padrão 25, teto 500) e respondem com os itens em `data` e a paginação em `meta`. O dashboard e os relatórios não paginam.
 

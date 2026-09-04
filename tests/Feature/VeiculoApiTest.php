@@ -151,6 +151,56 @@ class VeiculoApiTest extends TestCase
             ->assertJsonPath('meta.last_page', 1);
     }
 
+    public function test_lista_veiculos_filtra_por_busca(): void
+    {
+        $pessoa = $this->criarPessoa();
+
+        $outraPessoa = Pessoa::create([
+            'nome' => 'Maria Souza',
+            'cpf' => '93541134780', // CPF com dígitos verificadores válidos
+            'sexo' => 'F',
+            'data_nascimento' => '1992-01-25',
+            'telefone' => '11988887777',
+            'email' => 'maria@exemplo.com',
+        ]);
+
+        // Dois Toyotas (um de cada pessoa) e um Honda, para a busca
+        // por marca pegar só os correspondentes
+        $veiculos = [
+            ['pessoa_id' => $pessoa->id, 'marca' => 'Toyota', 'modelo' => 'Corolla', 'ano' => 2020, 'placa' => 'XYZ9999'],
+            ['pessoa_id' => $pessoa->id, 'marca' => 'Honda', 'modelo' => 'Civic', 'ano' => 2019, 'placa' => 'ABC1234'],
+            ['pessoa_id' => $outraPessoa->id, 'marca' => 'Toyota', 'modelo' => 'Hilux', 'ano' => 2022, 'placa' => 'MNO5678'],
+        ];
+
+        foreach ($veiculos as $veiculo) {
+            $this->postJson('/api/veiculos', $veiculo)->assertStatus(201);
+        }
+
+        // Por marca
+        $this->getJson('/api/veiculos?busca=toyota')
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.total', 2);
+
+        // Por placa, aceitando hífen e trecho parcial ("xyz-99" acha XYZ9999)
+        $this->getJson('/api/veiculos?busca=xyz-99')
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.placa', 'XYZ9999');
+
+        // Por nome do proprietário
+        $this->getJson('/api/veiculos?busca=souza')
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.placa', 'MNO5678');
+
+        // Por modelo
+        $this->getJson('/api/veiculos?busca=hilux')
+            ->assertJsonCount(1, 'data');
+
+        // Busca sem resultado: página vazia, mas com a meta
+        $this->getJson('/api/veiculos?busca=zzzzzz')
+            ->assertJsonCount(0, 'data')
+            ->assertJsonPath('meta.total', 0);
+    }
+
     public function test_nao_cadastra_veiculo_sem_proprietario(): void
     {
         $resposta = $this->postJson('/api/veiculos', [

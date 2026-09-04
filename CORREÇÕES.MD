@@ -280,9 +280,19 @@ dashboard e relatórios continuam integrais):
   nos extremos + "Página X de Y (N no total)"), estado `pagina` resetado ao
   trocar de filtro, e recuo automático de página ao excluir o último item da
   última página.
+- Busca na tela de veículos (complemento depois da rodada): `?busca=` no
+  `VeiculoController::index()` filtra por marca, modelo, placa (aceita hífen e
+  trecho parcial) ou nome do proprietário, com campo de busca no `Veiculos.vue`.
+  Curinga no começo (`%termo%`) não usa índice comum, então os campos ganharam
+  índices GIN de trígramas (`pg_trgm`) na migration nova
+  `2026_09_04_100004_adiciona_indices_busca.php` — só roda em PostgreSQL (o
+  SQLite dos testes não tem a extensão), com expressões `LOWER`/`REPLACE`
+  idênticas às da consulta para o banco reconhecer o índice.
 
 **Como validar:** `GET /api/pessoas?per_page=1` → `meta.last_page` ≥ 2 e `data`
 com 1 item; navegação Anterior/Próxima nas telas com o `DadosEmVolumeSeeder`.
+Busca: `GET /api/veiculos?busca=xyz-99` acha a placa `XYZ9999`; no PostgreSQL,
+`EXPLAIN` da consulta com busca mostra o `Index Scan` usando os trígramas.
 
 ### E2 — Dashboard sem teste
 
@@ -306,6 +316,13 @@ bancos), resposta pública inalterada.
 analista cobrar, o próximo passo é `laravel/sanctum` com login por e-mail +
 token (ou `auth:sanctum` nas rotas), telas de login no SPA e proteção do
 `.env` de produção.
+
+**Contenção provisória:** como um dos efeitos da falta de login seria deixar
+aberto um endpoint que apaga o banco, o painel de manutenção (`/manutencao`,
+tela no menu + `POST /api/manutencao/limpar`) exige o `MANUTENCAO_TOKEN` do
+`.env` comparado com `hash_equals` — sem o valor configurado o recurso fica
+desligado. Quando a autenticação entrar, o painel vira rota de admin e o
+token de ambiente sai.
 
 ---
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\ManutencaoController;
 use App\Http\Controllers\Api\PessoaController;
 use App\Http\Controllers\Api\RelatorioController;
 use App\Http\Controllers\Api\RevisaoController;
@@ -31,3 +32,8 @@ Route::get('relatorios/marcas-com-mais-revisoes', [RelatorioController::class, '
 Route::get('relatorios/pessoas-com-mais-revisoes', [RelatorioController::class, 'pessoasComMaisRevisoes']);
 Route::get('relatorios/media-tempo-entre-revisoes', [RelatorioController::class, 'mediaTempoEntreRevisoes']);
 Route::get('relatorios/proximas-revisoes', [RelatorioController::class, 'proximasRevisoes']);
+
+// Painel de manutenção (apaga e popula o banco — protegido pelo
+// MANUTENCAO_TOKEN do .env; sem token configurado, só o status responde)
+Route::get('manutencao', [ManutencaoController::class, 'status']);
+Route::post('manutencao/limpar', [ManutencaoController::class, 'limparEPopular']);

@@ -12,10 +12,25 @@ use Illuminate\Support\Facades\Log;
 class VeiculoController extends Controller
 {
     // ?pessoa_id= retorna só os veículos de uma pessoa (link "Ver veículos" da tela de pessoas)
+    // ?busca= filtra por marca, modelo, placa ou nome do proprietário.
+    // Os LIKE abaixo são cobertos pelos índices de trígrama criados na
+    // migration 2026_09_04_100004 (sem eles, %termo% varreria a tabela toda)
     public function index(Request $request): JsonResponse
     {
         $veiculos = Veiculo::with('pessoa:id,nome')
             ->when($request->query('pessoa_id'), fn ($query) => $query->where('pessoa_id', $request->query('pessoa_id')))
+            ->when($request->query('busca'), function ($query, $busca) {
+                $termo = mb_strtolower(trim($busca));
+                // placa é guardada sem hífen, mas a busca pode vir com ("abc-1234")
+                $termoPlaca = mb_strtolower(preg_replace('/[^a-z0-9]/i', '', $busca));
+
+                $query->where(function ($where) use ($termo, $termoPlaca) {
+                    $where->whereRaw('LOWER(marca) LIKE ?', ["%{$termo}%"])
+                        ->orWhereRaw('LOWER(modelo) LIKE ?', ["%{$termo}%"])
+                        ->orWhereRaw("LOWER(REPLACE(placa, '-', '')) LIKE ?", ["%{$termoPlaca}%"])
+                        ->orWhereHas('pessoa', fn ($p) => $p->whereRaw('LOWER(nome) LIKE ?', ["%{$termo}%"]));
+                });
+            })
             ->orderBy('marca')
             ->orderBy('modelo')
             ->paginate($this->perPage($request));

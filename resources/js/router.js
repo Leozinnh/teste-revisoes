@@ -6,6 +6,7 @@ import Pessoas from './components/Pessoas.vue';
 import Veiculos from './components/Veiculos.vue';
 import Revisoes from './components/Revisoes.vue';
 import Relatorios from './components/Relatorios.vue';
+import Manutencao from './components/Manutencao.vue';
 
 Vue.use(VueRouter);
 
@@ -17,6 +18,7 @@ const router = new VueRouter({
         { path: '/veiculos', component: Veiculos, meta: { titulo: 'Veículos' } },
         { path: '/revisoes', component: Revisoes, meta: { titulo: 'Revisões' } },
         { path: '/relatorios', component: Relatorios, meta: { titulo: 'Relatórios' } },
+        { path: '/manutencao', component: Manutencao, meta: { titulo: 'Manutenção' } },
     ],
 });
 

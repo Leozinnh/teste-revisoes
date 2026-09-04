@@ -171,8 +171,12 @@ Exclui a pessoa. Se ela tiver veículos, responde **409**:
 ### `GET /api/veiculos`
 
 Lista os veículos (em ordem alfabética de marca e modelo) com o nome do
-proprietário. Aceita o filtro opcional `?pessoa_id=3` para listar só os
-veículos daquela pessoa. **Paginada** (`?page=` e `?per_page=`).
+proprietário. Aceita os filtros opcionais:
+
+- `?pessoa_id=3` — só os veículos daquela pessoa (usado no link "Ver veículos" da tela de pessoas).
+- `?busca=toyota` — busca livre por marca, modelo, placa ou nome do proprietário. A busca ignora maiúsculas/minúsculas e aceita a placa com hífen (`?busca=xyz-99` acha `XYZ9999`).
+
+**Paginada** (`?page=` e `?per_page=`).
 
 **Resposta:**
 
@@ -397,3 +401,45 @@ O front-end monta a tabela e o gráfico a partir de `colunas`, `linhas` e
 
 O SQL de cada relatório está em `database/reports/` com os mesmos nomes,
 numerados de `01` a `12`.
+
+---
+
+## Manutenção
+
+Painel usado para **apagar o banco e popular de novo** com dados limpos
+(por exemplo, quando sobram registros inválidos de um seed antigo).
+Como a API ainda não tem autenticação (pendência E3), estes endpoints são
+protegidos por um token de ambiente, o `MANUTENCAO_TOKEN` do `.env` —
+**vazio deixa o recurso desligado** (só o status responde).
+
+### `GET /api/manutencao`
+
+Diz se o painel está liberado. Não exige token (só informa se ele existe).
+
+```json
+{ "success": true, "token_configurado": true }
+```
+
+### `POST /api/manutencao/limpar`
+
+Apaga as tabelas (`migrate:fresh`) e roda o `DatabaseSeeder`
+(opcionalmente também o `DadosEmVolumeSeeder`, para os relatórios).
+
+| Campo | Tipo | Regra |
+|---|---|---|
+| `token` | texto | obrigatório; precisa ser igual ao `MANUTENCAO_TOKEN` do `.env` |
+| `com_volume` | booleano | opcional; `true` inclui os dados em volume (~1.000 revisões) |
+
+**Resposta** (200):
+
+```json
+{
+  "success": true,
+  "message": "Banco apagado e populado de novo.",
+  "etapas": ["migrate:fresh", "db:seed (padrão)"],
+  "contagem": { "pessoas": 20, "veiculos": 34, "revisoes": 112 }
+}
+```
+
+Token ausente, errado ou não configurado → `403`. Falha no meio do caminho
+(com o banco já recriado, sem o seed) → `500` com a mensagem no log.

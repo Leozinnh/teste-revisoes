@@ -53,6 +53,7 @@ export default {
                 { rota: '/veiculos', titulo: 'Veículos', subtitulo: 'Cadastro de veículos vinculados a uma pessoa' },
                 { rota: '/revisoes', titulo: 'Revisões', subtitulo: 'Histórico de revisões dos veículos' },
                 { rota: '/relatorios', titulo: 'Relatórios', subtitulo: 'Consultas e indicadores do sistema' },
+                { rota: '/manutencao', titulo: 'Manutenção', subtitulo: 'Apagar o banco e popular de novo (protegido por token)' },
             ],
         };
     },

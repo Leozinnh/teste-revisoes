@@ -34,6 +34,32 @@
             </button>
         </div>
 
+        <!-- Busca por placa, marca, modelo ou proprietário -->
+        <div class="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input
+                v-model="busca"
+                type="text"
+                placeholder="Buscar por placa, marca, modelo ou proprietário..."
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200 sm:max-w-xs"
+                @keyup.enter="buscar()"
+            >
+            <div class="flex gap-2">
+                <button
+                    @click="buscar()"
+                    class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+                >
+                    Buscar
+                </button>
+                <button
+                    v-if="buscaAplicada"
+                    @click="limparBusca()"
+                    class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                >
+                    Limpar
+                </button>
+            </div>
+        </div>
+
         <!-- Formulário (cadastro e edição) -->
         <div v-if="mostrandoFormulario" class="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -156,9 +182,7 @@
 
             <p v-if="carregando" class="px-4 py-6 text-center text-sm text-slate-500">Carregando...</p>
             <p v-else-if="veiculos.length === 0" class="px-4 py-6 text-center text-sm text-slate-500">
-                {{ pessoaFiltro
-                    ? 'Este proprietário não possui veículos cadastrados.'
-                    : 'Nenhum veículo cadastrado ainda.' }}
+                {{ mensagemListaVazia }}
             </p>
 
             <!-- Rodapé de paginação -->
@@ -204,6 +228,11 @@ export default {
             pessoas: [],
             pagina: 1,
             paginacao: {},
+            // texto digitado no campo de busca
+            busca: '',
+            // último termo que realmente filtrou a lista (o campo pode
+            // ser editado sem recarregar até apertar Buscar ou Enter)
+            buscaAplicada: '',
             // pessoa filtrada pela URL (?pessoa_id=), vinda da tela de pessoas
             pessoaFiltroId: null,
             // nome da pessoa do filtro, buscado à parte: com a paginação,
@@ -227,6 +256,16 @@ export default {
     computed: {
         pessoaFiltro() {
             return this.pessoaFiltroId ? this.pessoaFiltroNome : null;
+        },
+
+        mensagemListaVazia() {
+            if (this.buscaAplicada) {
+                return 'Nenhum veículo encontrado para "' + this.buscaAplicada + '".';
+            }
+            if (this.pessoaFiltro) {
+                return 'Este proprietário não possui veículos cadastrados.';
+            }
+            return 'Nenhum veículo cadastrado ainda.';
         },
     },
 
@@ -276,6 +315,9 @@ export default {
                 if (this.pessoaFiltroId) {
                     params.pessoa_id = this.pessoaFiltroId;
                 }
+                if (this.buscaAplicada) {
+                    params.busca = this.buscaAplicada;
+                }
                 const resposta = await axios.get('/veiculos', { params });
                 this.veiculos = resposta.data.data;
                 this.paginacao = resposta.data.meta;
@@ -302,6 +344,19 @@ export default {
                 return;
             }
             this.pagina = pagina;
+            this.carregarVeiculos();
+        },
+
+        buscar() {
+            this.buscaAplicada = this.busca.trim();
+            this.pagina = 1;
+            this.carregarVeiculos();
+        },
+
+        limparBusca() {
+            this.busca = '';
+            this.buscaAplicada = '';
+            this.pagina = 1;
             this.carregarVeiculos();
         },
 
