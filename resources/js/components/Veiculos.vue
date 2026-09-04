@@ -57,8 +57,11 @@
                     <input
                         v-model="form.marca"
                         type="text"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        maxlength="100"
+                        class="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        :class="erros.marca ? 'border-red-400' : 'border-slate-300'"
                     >
+                    <p v-if="erros.marca" class="mt-1 text-xs text-red-600">{{ erros.marca[0] }}</p>
                 </div>
 
                 <div>
@@ -66,8 +69,11 @@
                     <input
                         v-model="form.modelo"
                         type="text"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        maxlength="100"
+                        class="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        :class="erros.modelo ? 'border-red-400' : 'border-slate-300'"
                     >
+                    <p v-if="erros.modelo" class="mt-1 text-xs text-red-600">{{ erros.modelo[0] }}</p>
                 </div>
 
                 <div>
@@ -75,8 +81,12 @@
                     <input
                         v-model.number="form.ano"
                         type="number"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        min="1900"
+                        max="2100"
+                        class="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        :class="erros.ano ? 'border-red-400' : 'border-slate-300'"
                     >
+                    <p v-if="erros.ano" class="mt-1 text-xs text-red-600">{{ erros.ano[0] }}</p>
                 </div>
 
                 <div>
@@ -85,8 +95,10 @@
                         v-model="form.placa"
                         type="text"
                         placeholder="ABC-1234"
+                        maxlength="8"
                         class="w-full rounded-lg border px-3 py-2 text-sm uppercase outline-none focus:ring-2 focus:ring-sky-200"
                         :class="erros.placa ? 'border-red-400' : 'border-slate-300'"
+                        @input="form.placa = form.placa.toUpperCase()"
                     >
                     <p v-if="erros.placa" class="mt-1 text-xs text-red-600">{{ erros.placa[0] }}</p>
                 </div>
@@ -144,8 +156,37 @@
 
             <p v-if="carregando" class="px-4 py-6 text-center text-sm text-slate-500">Carregando...</p>
             <p v-else-if="veiculos.length === 0" class="px-4 py-6 text-center text-sm text-slate-500">
-                Nenhum veículo cadastrado ainda.
+                {{ pessoaFiltro
+                    ? 'Este proprietário não possui veículos cadastrados.'
+                    : 'Nenhum veículo cadastrado ainda.' }}
             </p>
+
+            <!-- Rodapé de paginação -->
+            <div
+                v-if="!carregando && paginacao.total > 0"
+                class="flex items-center justify-between border-t border-slate-200 px-4 py-3"
+            >
+                <p class="text-sm text-slate-500">
+                    Página {{ paginacao.current_page }} de {{ paginacao.last_page }}
+                    ({{ paginacao.total }} no total)
+                </p>
+                <div class="flex gap-2">
+                    <button
+                        @click="mudarPagina(paginacao.current_page - 1)"
+                        :disabled="paginacao.current_page <= 1"
+                        class="rounded-lg border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        Anterior
+                    </button>
+                    <button
+                        @click="mudarPagina(paginacao.current_page + 1)"
+                        :disabled="paginacao.current_page >= paginacao.last_page"
+                        class="rounded-lg border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        Próxima
+                    </button>
+                </div>
+            </div>
         </div>
 
     </div>
@@ -161,8 +202,13 @@ export default {
         return {
             veiculos: [],
             pessoas: [],
+            pagina: 1,
+            paginacao: {},
             // pessoa filtrada pela URL (?pessoa_id=), vinda da tela de pessoas
             pessoaFiltroId: null,
+            // nome da pessoa do filtro, buscado à parte: com a paginação,
+            // ela nem sempre está na lista da página
+            pessoaFiltroNome: null,
             mostrandoFormulario: false,
             editandoId: null,
             carregando: true,
@@ -178,29 +224,61 @@ export default {
         };
     },
 
-    mounted() {
-        // ?pessoa_id= na URL, vindo do link "Ver veículos"
-        this.pessoaFiltroId = this.$route.query.pessoa_id || null;
+    computed: {
+        pessoaFiltro() {
+            return this.pessoaFiltroId ? this.pessoaFiltroNome : null;
+        },
+    },
 
+    mounted() {
+        this.aplicarFiltroDaUrl();
         this.carregarVeiculos();
         this.carregarPessoas();
     },
 
-    computed: {
-        pessoaFiltro() {
-            const pessoa = this.veiculos.length > 0 ? this.veiculos[0].pessoa : null;
-            return pessoa ? pessoa.nome : null;
+    watch: {
+        // "Ver todos" só troca a query da URL e o Vue reaproveita o
+        // componente — sem esse watch o filtro não seria relido
+        '$route.query'() {
+            this.aplicarFiltroDaUrl();
+            this.carregarVeiculos();
         },
     },
 
     methods: {
+        aplicarFiltroDaUrl() {
+            this.pessoaFiltroId = this.$route.query.pessoa_id || null;
+            this.pessoaFiltroNome = null;
+            this.pagina = 1;
+            this.carregarNomeDoFiltro();
+        },
+
+        // Busca o nome da pessoa filtrada (endpoint show)
+        async carregarNomeDoFiltro() {
+            if (!this.pessoaFiltroId) {
+                return;
+            }
+
+            try {
+                const resposta = await axios.get('/pessoas/' + this.pessoaFiltroId);
+                this.pessoaFiltroNome = resposta.data.data.nome;
+            } catch (erro) {
+                // Pessoa excluída entre a navegação e o carregamento: some o aviso
+                this.pessoaFiltroNome = null;
+            }
+        },
+
         async carregarVeiculos() {
             this.carregando = true;
 
             try {
-                const params = this.pessoaFiltroId ? { pessoa_id: this.pessoaFiltroId } : {};
+                const params = { page: this.pagina };
+                if (this.pessoaFiltroId) {
+                    params.pessoa_id = this.pessoaFiltroId;
+                }
                 const resposta = await axios.get('/veiculos', { params });
                 this.veiculos = resposta.data.data;
+                this.paginacao = resposta.data.meta;
             } catch (erro) {
                 this.mostrarMensagem('Não foi possível carregar os veículos.', 'erro');
             } finally {
@@ -208,14 +286,23 @@ export default {
             }
         },
 
-        // Pessoas para o select do formulário
+        // Select do formulário: per_page=500 pra vir a lista inteira,
+        // não só os 25 da primeira página
         async carregarPessoas() {
             try {
-                const resposta = await axios.get('/pessoas');
+                const resposta = await axios.get('/pessoas', { params: { per_page: 500 } });
                 this.pessoas = resposta.data.data;
             } catch (erro) {
                 this.mostrarMensagem('Não foi possível carregar as pessoas.', 'erro');
             }
+        },
+
+        mudarPagina(pagina) {
+            if (pagina < 1 || pagina > (this.paginacao.last_page || 1)) {
+                return;
+            }
+            this.pagina = pagina;
+            this.carregarVeiculos();
         },
 
         validaFrontend() {
@@ -232,9 +319,13 @@ export default {
             }
             if (!this.form.ano) {
                 this.erros.ano = ['Informe o ano.'];
+            } else if (this.form.ano < 1900 || this.form.ano > 2100) {
+                this.erros.ano = ['O ano deve estar entre 1900 e 2100.'];
             }
             if (!this.form.placa.trim()) {
                 this.erros.placa = ['Informe a placa.'];
+            } else if (!/^([A-Z]{3}\d{4}|[A-Z]{3}\d[A-Z]\d{2})$/.test(this.form.placa.replace(/[^A-Za-z0-9]/g, ''))) {
+                this.erros.placa = ['Formato de placa inválido. Use ABC1234 ou ABC1D23.'];
             }
 
             return Object.keys(this.erros).length === 0;
@@ -244,7 +335,7 @@ export default {
             // Ao cadastrar vindo da tela de pessoas, o proprietário
             // já vem selecionado
             if (this.pessoaFiltroId && !this.editandoId) {
-                this.form.pessoa_id = this.pessoaFiltroId;
+                this.form.pessoa_id = Number(this.pessoaFiltroId);
             }
             this.mostrandoFormulario = true;
         },
@@ -311,6 +402,11 @@ export default {
             try {
                 await axios.delete('/veiculos/' + veiculo.id);
                 this.mostrarMensagem('Veículo excluído com sucesso.');
+
+                // Se era o último item da última página, volta uma página
+                if (this.veiculos.length === 1 && this.pagina > 1) {
+                    this.pagina--;
+                }
                 this.carregarVeiculos();
             } catch (erro) {
                 const mensagem = erro.response && erro.response.data

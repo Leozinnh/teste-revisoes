@@ -11,7 +11,9 @@ Route::apiResource('pessoas', PessoaController::class);
 
 Route::apiResource('veiculos', VeiculoController::class);
 
-Route::apiResource('revisoes', RevisaoController::class);
+// Sem isso o Laravel pluraliza o parâmetro como {reviso} (inglês) e o
+// FormRequest não acha a revisão na edição.
+Route::apiResource('revisoes', RevisaoController::class)->parameters(['revisoes' => 'revisao']);
 
 // Dashboard
 Route::get('dashboard', [DashboardController::class, 'resumo']);

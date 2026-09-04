@@ -18,9 +18,9 @@ class VeiculoController extends Controller
             ->when($request->query('pessoa_id'), fn ($query) => $query->where('pessoa_id', $request->query('pessoa_id')))
             ->orderBy('marca')
             ->orderBy('modelo')
-            ->get();
+            ->paginate($this->perPage($request));
 
-        return response()->json(['success' => true, 'data' => $veiculos]);
+        return response()->json($this->respostaPaginada($veiculos));
     }
 
     public function show(int $id): JsonResponse

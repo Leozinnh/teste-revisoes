@@ -6,15 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePessoaRequest;
 use App\Models\Pessoa;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class PessoaController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $pessoas = Pessoa::withCount('veiculos')->orderBy('nome')->get();
+        $pessoas = Pessoa::withCount('veiculos')
+            ->orderBy('nome')
+            ->paginate($this->perPage($request));
 
-        return response()->json(['success' => true, 'data' => $pessoas]);
+        return response()->json($this->respostaPaginada($pessoas));
     }
 
     public function show(int $id): JsonResponse

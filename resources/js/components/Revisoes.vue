@@ -57,17 +57,25 @@
                     <input
                         v-model="form.data_revisao"
                         type="date"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        min="1900-01-01"
+                        :max="hoje"
+                        class="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        :class="erros.data_revisao ? 'border-red-400' : 'border-slate-300'"
                     >
+                    <p v-if="erros.data_revisao" class="mt-1 text-xs text-red-600">{{ erros.data_revisao[0] }}</p>
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-slate-600">Quilometragem *</label>
+                    <label class="mb-1 block text-sm font-medium text-slate-600">Quilometragem (km) *</label>
                     <input
                         v-model.number="form.quilometragem"
                         type="number"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        min="0"
+                        max="2000000"
+                        class="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        :class="erros.quilometragem ? 'border-red-400' : 'border-slate-300'"
                     >
+                    <p v-if="erros.quilometragem" class="mt-1 text-xs text-red-600">{{ erros.quilometragem[0] }}</p>
                 </div>
 
                 <div>
@@ -76,8 +84,13 @@
                         v-model="form.valor"
                         type="text"
                         inputmode="decimal"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        placeholder="0,00"
+                        maxlength="15"
+                        class="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        :class="erros.valor ? 'border-red-400' : 'border-slate-300'"
                     >
+                    <p v-if="erros.valor" class="mt-1 text-xs text-red-600">{{ erros.valor[0] }}</p>
+                    <p class="mt-1 text-xs text-slate-400">Use vírgula para os centavos: ex.: 1.234,56</p>
                 </div>
 
                 <div>
@@ -86,8 +99,11 @@
                         v-model="form.descricao"
                         type="text"
                         placeholder="Ex.: troca de óleo e filtros"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        maxlength="255"
+                        class="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        :class="erros.descricao ? 'border-red-400' : 'border-slate-300'"
                     >
+                    <p v-if="erros.descricao" class="mt-1 text-xs text-red-600">{{ erros.descricao[0] }}</p>
                 </div>
 
                 <div class="md:col-span-2">
@@ -95,8 +111,10 @@
                     <textarea
                         v-model="form.observacoes"
                         rows="3"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        class="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        :class="erros.observacoes ? 'border-red-400' : 'border-slate-300'"
                     ></textarea>
+                    <p v-if="erros.observacoes" class="mt-1 text-xs text-red-600">{{ erros.observacoes[0] }}</p>
                 </div>
             </div>
 
@@ -151,8 +169,37 @@
 
             <p v-if="carregando" class="px-4 py-6 text-center text-sm text-slate-500">Carregando...</p>
             <p v-else-if="revisoes.length === 0" class="px-4 py-6 text-center text-sm text-slate-500">
-                Nenhuma revisão cadastrada ainda.
+                {{ veiculoFiltro
+                    ? 'Este veículo não possui revisões cadastradas.'
+                    : 'Nenhuma revisão cadastrada ainda.' }}
             </p>
+
+            <!-- Rodapé de paginação -->
+            <div
+                v-if="!carregando && paginacao.total > 0"
+                class="flex items-center justify-between border-t border-slate-200 px-4 py-3"
+            >
+                <p class="text-sm text-slate-500">
+                    Página {{ paginacao.current_page }} de {{ paginacao.last_page }}
+                    ({{ paginacao.total }} no total)
+                </p>
+                <div class="flex gap-2">
+                    <button
+                        @click="mudarPagina(paginacao.current_page - 1)"
+                        :disabled="paginacao.current_page <= 1"
+                        class="rounded-lg border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        Anterior
+                    </button>
+                    <button
+                        @click="mudarPagina(paginacao.current_page + 1)"
+                        :disabled="paginacao.current_page >= paginacao.last_page"
+                        class="rounded-lg border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        Próxima
+                    </button>
+                </div>
+            </div>
         </div>
 
     </div>
@@ -168,13 +215,19 @@ export default {
         return {
             revisoes: [],
             veiculos: [],
+            pagina: 1,
+            paginacao: {},
             // veículo filtrado pela URL (?veiculo_id=), vindo da tela de veículos
             veiculoFiltroId: null,
+            // nome do veículo do filtro, buscado à parte: com a paginação,
+            // ele nem sempre está na lista da página
+            veiculoFiltroNome: null,
             mostrandoFormulario: false,
             editandoId: null,
             carregando: true,
             mensagem: null,
             erros: {},
+            hoje: new Date().toISOString().slice(0, 10),
             form: {
                 veiculo_id: null,
                 data_revisao: '',
@@ -186,29 +239,62 @@ export default {
         };
     },
 
-    mounted() {
-        // ?veiculo_id= na URL, vindo do link "Ver revisões"
-        this.veiculoFiltroId = this.$route.query.veiculo_id || null;
+    computed: {
+        veiculoFiltro() {
+            return this.veiculoFiltroId ? this.veiculoFiltroNome : null;
+        },
+    },
 
+    mounted() {
+        this.aplicarFiltroDaUrl();
         this.carregarRevisoes();
         this.carregarVeiculos();
     },
 
-    computed: {
-        veiculoFiltro() {
-            const veiculo = this.revisoes.length > 0 ? this.revisoes[0].veiculo : null;
-            return veiculo ? veiculo.marca + ' ' + veiculo.modelo + ' (' + veiculo.placa + ')' : null;
+    watch: {
+        // "Ver todas" só troca a query da URL e o Vue reaproveita o
+        // componente — sem esse watch o filtro não seria relido
+        '$route.query'() {
+            this.aplicarFiltroDaUrl();
+            this.carregarRevisoes();
         },
     },
 
     methods: {
+        aplicarFiltroDaUrl() {
+            this.veiculoFiltroId = this.$route.query.veiculo_id || null;
+            this.veiculoFiltroNome = null;
+            this.pagina = 1;
+            this.carregarNomeDoFiltro();
+        },
+
+        // Busca a descrição do veículo filtrado (endpoint show)
+        async carregarNomeDoFiltro() {
+            if (!this.veiculoFiltroId) {
+                return;
+            }
+
+            try {
+                const resposta = await axios.get('/veiculos/' + this.veiculoFiltroId);
+                const veiculo = resposta.data.data;
+                this.veiculoFiltroNome = veiculo.marca + ' ' + veiculo.modelo + ' (' + veiculo.placa + ')';
+            } catch (erro) {
+                // Veículo excluído entre a navegação e o carregamento: some o aviso
+                this.veiculoFiltroNome = null;
+            }
+        },
+
         async carregarRevisoes() {
             this.carregando = true;
 
             try {
-                const params = this.veiculoFiltroId ? { veiculo_id: this.veiculoFiltroId } : {};
+                const params = { page: this.pagina };
+                if (this.veiculoFiltroId) {
+                    params.veiculo_id = this.veiculoFiltroId;
+                }
                 const resposta = await axios.get('/revisoes', { params });
                 this.revisoes = resposta.data.data;
+                this.paginacao = resposta.data.meta;
             } catch (erro) {
                 this.mostrarMensagem('Não foi possível carregar as revisões.', 'erro');
             } finally {
@@ -216,14 +302,32 @@ export default {
             }
         },
 
-        // Veículos para o select do formulário
+        // Select do formulário: per_page=500 pra vir a lista inteira,
+        // não só os 25 da primeira página
         async carregarVeiculos() {
             try {
-                const resposta = await axios.get('/veiculos');
+                const resposta = await axios.get('/veiculos', { params: { per_page: 500 } });
                 this.veiculos = resposta.data.data;
             } catch (erro) {
                 this.mostrarMensagem('Não foi possível carregar os veículos.', 'erro');
             }
+        },
+
+        mudarPagina(pagina) {
+            if (pagina < 1 || pagina > (this.paginacao.last_page || 1)) {
+                return;
+            }
+            this.pagina = pagina;
+            this.carregarRevisoes();
+        },
+
+        // O usuário digita "1.234,56" e a API só aceita ponto:
+        // tira os pontos de milhar e troca a vírgula na hora de enviar
+        converterValorParaEnvio(valor) {
+            if (valor === null || valor === undefined) {
+                return '';
+            }
+            return String(valor).trim().replace(/\./g, '').replace(',', '.');
         },
 
         validaFrontend() {
@@ -234,12 +338,35 @@ export default {
             }
             if (!this.form.data_revisao) {
                 this.erros.data_revisao = ['Informe a data da revisão.'];
+            } else if (this.form.data_revisao > this.hoje) {
+                this.erros.data_revisao = ['A data da revisão não pode ser no futuro.'];
             }
+            if (this.form.quilometragem === null || this.form.quilometragem === '') {
+                this.erros.quilometragem = ['Informe a quilometragem.'];
+            } else if (this.form.quilometragem < 0) {
+                this.erros.quilometragem = ['A quilometragem não pode ser negativa.'];
+            } else if (this.form.quilometragem > 2000000) {
+                this.erros.quilometragem = ['A quilometragem não pode ultrapassar 2.000.000 km.'];
+            }
+
+            const valorTexto = this.form.valor === null || this.form.valor === undefined
+                ? ''
+                : String(this.form.valor).trim();
+            // Formato brasileiro: "350", "350,50" ou "1.234,56"
+            const valorValido = /^\d{1,3}(\.\d{3})*(,\d{1,2})?$/.test(valorTexto);
+            if (!valorTexto) {
+                this.erros.valor = ['Informe o valor.'];
+            } else if (!valorValido) {
+                this.erros.valor = ['Informe o valor no formato brasileiro (ex.: 1.234,56).'];
+            } else {
+                const valorEnviado = Number(this.converterValorParaEnvio(valorTexto));
+                if (valorEnviado > 99999999.99) {
+                    this.erros.valor = ['O valor não pode ultrapassar R$ 99.999.999,99.'];
+                }
+            }
+
             if (!this.form.descricao.trim()) {
                 this.erros.descricao = ['Informe a descrição.'];
-            }
-            if (this.form.valor === '' || Number(this.form.valor) < 0) {
-                this.erros.valor = ['Informe um valor válido.'];
             }
 
             return Object.keys(this.erros).length === 0;
@@ -248,7 +375,7 @@ export default {
         abrirFormulario() {
             // Ao cadastrar vindo da tela de veículos, o veículo já vem selecionado
             if (this.veiculoFiltroId && !this.editandoId) {
-                this.form.veiculo_id = this.veiculoFiltroId;
+                this.form.veiculo_id = Number(this.veiculoFiltroId);
             }
             this.mostrandoFormulario = true;
         },
@@ -274,7 +401,13 @@ export default {
                 veiculo_id: revisao.veiculo_id,
                 data_revisao: revisao.data_revisao,
                 quilometragem: revisao.quilometragem,
-                valor: revisao.valor,
+                // O banco devolve "1234.56"; o input mostra "1.234,56"
+                valor: revisao.valor === null || revisao.valor === undefined
+                    ? ''
+                    : new Intl.NumberFormat('pt-BR', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                    }).format(Number(revisao.valor)),
                 descricao: revisao.descricao,
                 observacoes: revisao.observacoes || '',
             };
@@ -285,12 +418,17 @@ export default {
                 return;
             }
 
+            // Valor digitado em formato brasileiro vira ponto decimal no envio
+            const dados = Object.assign({}, this.form);
+            dados.valor = this.converterValorParaEnvio(dados.valor);
+            dados.observacoes = dados.observacoes || null;
+
             try {
                 if (this.editandoId) {
-                    await axios.put('/revisoes/' + this.editandoId, this.form);
+                    await axios.put('/revisoes/' + this.editandoId, dados);
                     this.mostrarMensagem('Revisão atualizada com sucesso.');
                 } else {
-                    await axios.post('/revisoes', this.form);
+                    await axios.post('/revisoes', dados);
                     this.mostrarMensagem('Revisão cadastrada com sucesso.');
                 }
 
@@ -317,6 +455,11 @@ export default {
             try {
                 await axios.delete('/revisoes/' + revisao.id);
                 this.mostrarMensagem('Revisão excluída com sucesso.');
+
+                // Se era o último item da última página, volta uma página
+                if (this.revisoes.length === 1 && this.pagina > 1) {
+                    this.pagina--;
+                }
                 this.carregarRevisoes();
             } catch (erro) {
                 const mensagem = erro.response && erro.response.data

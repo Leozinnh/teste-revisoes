@@ -4,10 +4,9 @@
          bootstrap="vendor/autoload.php"
          colors="true"
 >
+    <!-- O projeto só tem testes de Feature; a suite Unit apontava pra um
+         diretório que não existe e derrubava o php artisan test. -->
     <testsuites>
-        <testsuite name="Unit">
-            <directory>tests/Unit</directory>
-        </testsuite>
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>

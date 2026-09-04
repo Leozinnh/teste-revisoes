@@ -16,7 +16,8 @@ return new class extends Migration
             $table->string('marca');
             $table->string('modelo');
             $table->integer('ano');
-            $table->string('placa', 8)->unique();
+            // 7 caracteres: padrão antigo (ABC1234) ou Mercosul (ABC1D23)
+            $table->string('placa', 7)->unique();
             $table->timestamps();
 
             $table->index('pessoa_id');

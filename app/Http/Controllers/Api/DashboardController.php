@@ -24,11 +24,12 @@ class DashboardController extends Controller
             ->orderByDesc('total')
             ->get();
 
-        // Revisões por mês (to_char é do PostgreSQL: data como "AAAA-MM")
-        $porMes = Revisao::selectRaw("to_char(data_revisao, 'YYYY-MM') as mes, count(*) as total")
-            ->groupBy('mes')
-            ->orderBy('mes')
-            ->get();
+        // Revisões por mês, agrupadas em PHP (funciona igual no Postgres
+        // e no SQLite dos testes).
+        $porMes = Revisao::pluck('data_revisao')
+            ->map(fn ($data) => substr((string) $data, 0, 7))
+            ->countBy()
+            ->sortKeys();
 
         // Gráfico: pessoas por sexo
         $porSexo = Pessoa::selectRaw('sexo, count(*) as total')
@@ -51,8 +52,8 @@ class DashboardController extends Controller
                     'valores' => $porMarca->pluck('total'),
                 ],
                 'grafico_meses' => [
-                    'rotulos' => $porMes->pluck('mes'),
-                    'valores' => $porMes->pluck('total'),
+                    'rotulos' => $porMes->keys(),
+                    'valores' => $porMes->values(),
                 ],
                 'grafico_sexo' => [
                     'rotulos' => $porSexo->pluck('rotulo'),

@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -21,6 +22,12 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamps();
         });
+
+        // CHECK só no PostgreSQL: o SQLite dos testes não aceita
+        // ADD CONSTRAINT depois que a tabela já foi criada.
+        if (Schema::getConnection()->getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE pessoas ADD CONSTRAINT pessoas_sexo_check CHECK (sexo IN ('M', 'F'))");
+        }
     }
 
     public function down(): void

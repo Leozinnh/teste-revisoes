@@ -52,10 +52,11 @@ class DatabaseSeeder extends Seeder
 
             $pessoas->push(Pessoa::create([
                 'nome' => $primeiroNome . ' ' . $faker->lastName,
-                'cpf' => $faker->cpf,
+                // CPF e telefone vêm mascarados do Faker; o banco guarda só os dígitos
+                'cpf' => preg_replace('/\D/', '', $faker->cpf),
                 'sexo' => $sexo,
                 'data_nascimento' => $faker->dateTimeBetween('-65 years', '-18 years')->format('Y-m-d'),
-                'telefone' => $faker->phoneNumber,
+                'telefone' => preg_replace('/\D/', '', $faker->phoneNumber),
                 'email' => $faker->unique()->safeEmail,
             ]));
         }
@@ -73,9 +74,10 @@ class DatabaseSeeder extends Seeder
                 $marca = array_rand(self::MODELOS);
                 $modelo = $faker->randomElement(self::MODELOS[$marca]);
 
-                // A placa precisa ser única no banco; gera até achar uma nova
+                // Placa única: gera até achar uma livre, sempre sem hífen e em maiúsculas
                 do {
-                    $placa = $faker->lexify('???-####');
+                    // bothify troca '?' por letra e '#' por número (o lexify não troca o '#')
+                    $placa = strtoupper(str_replace('-', '', $faker->bothify('???-####')));
                 } while (in_array($placa, $placasUsadas, true));
                 $placasUsadas[] = $placa;
 
@@ -89,27 +91,34 @@ class DatabaseSeeder extends Seeder
             }
         });
 
-        // Revisões: 1 a 6 por veículo (60+ no total).
-        // A primeira fica entre 2 anos e 1 mês atrás; as anteriores
-        // ficam 60 a 240 dias antes, com km sempre menor
+        // Revisões: 1 a 6 por veículo. Gera as datas da mais recente pra trás
+        // e cria em ordem cronológica, com a km só aumentando (hodômetro não volta)
         $veiculos->each(function (Veiculo $veiculo) use ($faker) {
             $quantidade = rand(1, 6);
-            $km = rand(8000, 60000);
+
+            $datas = [];
             $data = $faker->dateTimeBetween('-2 years', '-1 month');
 
             for ($i = 0; $i < $quantidade; $i++) {
+                $datas[] = $data->format('Y-m-d');
+                $data = (clone $data)->modify('-' . rand(60, 240) . ' days');
+            }
+
+            $datas = array_reverse($datas); // da mais antiga para a mais recente
+            $km = rand(5000, 30000);
+
+            foreach ($datas as $dataRevisao) {
                 Revisao::create([
                     'veiculo_id' => $veiculo->id,
-                    'data_revisao' => $data->format('Y-m-d'),
+                    'data_revisao' => $dataRevisao,
                     'quilometragem' => $km,
                     'descricao' => $faker->randomElement(self::DESCRICOES_REVISAO),
                     'valor' => rand(15000, 250000) / 100, // ex.: 185.50
                     'observacoes' => $faker->boolean(30) ? $faker->sentence(6) : null,
                 ]);
 
-                // A revisão anterior fica meses antes e com km menor
+                // A revisão seguinte (mais nova) roda mais do que a anterior
                 $km += rand(5000, 15000);
-                $data = (clone $data)->modify('-' . rand(60, 240) . ' days');
             }
         });
     }

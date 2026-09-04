@@ -30,10 +30,10 @@ class RelatorioTest extends TestCase
     {
         $pessoa = Pessoa::create([
             'nome' => 'Carlos Pereira',
-            'cpf' => '555.444.333-22',
+            'cpf' => '52998224725', // CPF com dígitos verificadores válidos
             'sexo' => 'M',
             'data_nascimento' => '1978-11-02',
-            'telefone' => '(41) 96666-5555',
+            'telefone' => '41966665555',
             'email' => 'carlos@exemplo.com',
         ]);
 
@@ -42,7 +42,7 @@ class RelatorioTest extends TestCase
             'marca' => 'Volkswagen',
             'modelo' => 'Gol',
             'ano' => 2019,
-            'placa' => 'GOL-1234',
+            'placa' => 'GOL1234',
         ]);
 
         // Duas revisões com 90 dias de diferença

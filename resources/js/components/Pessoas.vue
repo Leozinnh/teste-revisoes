@@ -33,6 +33,7 @@
                     <input
                         v-model="form.nome"
                         type="text"
+                        maxlength="255"
                         class="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
                         :class="erros.nome ? 'border-red-400' : 'border-slate-300'"
                     >
@@ -45,6 +46,7 @@
                         v-model="form.cpf"
                         type="text"
                         placeholder="000.000.000-00"
+                        maxlength="14"
                         class="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
                         :class="erros.cpf ? 'border-red-400' : 'border-slate-300'"
                     >
@@ -55,11 +57,13 @@
                     <label class="mb-1 block text-sm font-medium text-slate-600">Sexo *</label>
                     <select
                         v-model="form.sexo"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        class="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        :class="erros.sexo ? 'border-red-400' : 'border-slate-300'"
                     >
                         <option value="M">Masculino</option>
                         <option value="F">Feminino</option>
                     </select>
+                    <p v-if="erros.sexo" class="mt-1 text-xs text-red-600">{{ erros.sexo[0] }}</p>
                 </div>
 
                 <div>
@@ -67,8 +71,12 @@
                     <input
                         v-model="form.data_nascimento"
                         type="date"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        min="1900-01-01"
+                        :max="hoje"
+                        class="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        :class="erros.data_nascimento ? 'border-red-400' : 'border-slate-300'"
                     >
+                    <p v-if="erros.data_nascimento" class="mt-1 text-xs text-red-600">{{ erros.data_nascimento[0] }}</p>
                 </div>
 
                 <div>
@@ -77,8 +85,11 @@
                         v-model="form.telefone"
                         type="text"
                         placeholder="(11) 99999-9999"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        maxlength="20"
+                        class="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                        :class="erros.telefone ? 'border-red-400' : 'border-slate-300'"
                     >
+                    <p v-if="erros.telefone" class="mt-1 text-xs text-red-600">{{ erros.telefone[0] }}</p>
                 </div>
 
                 <div>
@@ -86,6 +97,7 @@
                     <input
                         v-model="form.email"
                         type="email"
+                        maxlength="255"
                         class="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
                         :class="erros.email ? 'border-red-400' : 'border-slate-300'"
                     >
@@ -126,7 +138,7 @@
                 <tbody class="divide-y divide-slate-100">
                     <tr v-for="pessoa in pessoas" :key="pessoa.id" class="hover:bg-slate-50">
                         <td class="px-4 py-3 font-medium text-slate-800">{{ pessoa.nome }}</td>
-                        <td class="px-4 py-3 text-slate-600">{{ pessoa.cpf }}</td>
+                        <td class="px-4 py-3 text-slate-600">{{ formatarCPF(pessoa.cpf) }}</td>
                         <td class="px-4 py-3 text-slate-600">{{ pessoa.sexo === 'M' ? 'Masculino' : 'Feminino' }}</td>
                         <td class="px-4 py-3 text-slate-600">{{ formatarData(pessoa.data_nascimento) }}</td>
                         <td class="px-4 py-3 text-slate-600">{{ pessoa.email }}</td>
@@ -149,6 +161,33 @@
             <p v-else-if="pessoas.length === 0" class="px-4 py-6 text-center text-sm text-slate-500">
                 Nenhuma pessoa cadastrada ainda.
             </p>
+
+            <!-- Rodapé de paginação -->
+            <div
+                v-if="!carregando && paginacao.total > 0"
+                class="flex items-center justify-between border-t border-slate-200 px-4 py-3"
+            >
+                <p class="text-sm text-slate-500">
+                    Página {{ paginacao.current_page }} de {{ paginacao.last_page }}
+                    ({{ paginacao.total }} no total)
+                </p>
+                <div class="flex gap-2">
+                    <button
+                        @click="mudarPagina(paginacao.current_page - 1)"
+                        :disabled="paginacao.current_page <= 1"
+                        class="rounded-lg border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        Anterior
+                    </button>
+                    <button
+                        @click="mudarPagina(paginacao.current_page + 1)"
+                        :disabled="paginacao.current_page >= paginacao.last_page"
+                        class="rounded-lg border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        Próxima
+                    </button>
+                </div>
+            </div>
         </div>
 
     </div>
@@ -163,11 +202,14 @@ export default {
     data() {
         return {
             pessoas: [],
+            pagina: 1,
+            paginacao: {},
             mostrandoFormulario: false,
             editandoId: null,
             carregando: true,
             mensagem: null,
             erros: {},
+            hoje: new Date().toISOString().slice(0, 10),
             form: {
                 nome: '',
                 cpf: '',
@@ -188,13 +230,22 @@ export default {
             this.carregando = true;
 
             try {
-                const resposta = await axios.get('/pessoas');
+                const resposta = await axios.get('/pessoas', { params: { page: this.pagina } });
                 this.pessoas = resposta.data.data;
+                this.paginacao = resposta.data.meta;
             } catch (erro) {
                 this.mostrarMensagem('Não foi possível carregar as pessoas.', 'erro');
             } finally {
                 this.carregando = false;
             }
+        },
+
+        mudarPagina(pagina) {
+            if (pagina < 1 || pagina > (this.paginacao.last_page || 1)) {
+                return;
+            }
+            this.pagina = pagina;
+            this.carregarPessoas();
         },
 
         // Validação simples; o backend (Form Request) valida de novo
@@ -206,6 +257,18 @@ export default {
             }
             if (!this.form.cpf.trim()) {
                 this.erros.cpf = ['Informe o CPF.'];
+            }
+            if (!this.form.sexo) {
+                this.erros.sexo = ['Selecione o sexo.'];
+            }
+            if (!this.form.data_nascimento) {
+                this.erros.data_nascimento = ['Informe a data de nascimento.'];
+            } else if (this.form.data_nascimento >= this.hoje) {
+                this.erros.data_nascimento = ['A data de nascimento deve ser anterior a hoje.'];
+            }
+            const digitosTelefone = this.form.telefone.replace(/\D/g, '');
+            if (digitosTelefone.length < 10 || digitosTelefone.length > 11) {
+                this.erros.telefone = ['Informe o telefone com DDD (10 ou 11 dígitos).'];
             }
             if (!this.form.email.includes('@')) {
                 this.erros.email = ['Informe um e-mail válido.'];
@@ -283,6 +346,11 @@ export default {
             try {
                 await axios.delete('/pessoas/' + pessoa.id);
                 this.mostrarMensagem('Pessoa excluída com sucesso.');
+
+                // Se era o último item da última página, volta uma página
+                if (this.pessoas.length === 1 && this.pagina > 1) {
+                    this.pagina--;
+                }
                 this.carregarPessoas();
             } catch (erro) {
                 const mensagem = erro.response && erro.response.data
@@ -305,6 +373,18 @@ export default {
                 return '';
             }
             return new Date(data).toLocaleDateString('pt-BR');
+        },
+
+        formatarCPF(cpf) {
+            if (!cpf) {
+                return '';
+            }
+            // O banco guarda só dígitos; aqui só entra com 11 dígitos
+            const d = cpf.replace(/\D/g, '');
+            if (d.length !== 11) {
+                return cpf;
+            }
+            return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
         },
     },
 };

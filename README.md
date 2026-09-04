@@ -105,23 +105,25 @@ Endpoints:
 
 | Método | Rota | Descrição |
 |---|---|---|
-| GET | `/api/pessoas` | Lista as pessoas (com a contagem de veículos de cada uma) |
+| GET | `/api/pessoas` | Lista as pessoas, paginada (com a contagem de veículos de cada uma) |
 | POST | `/api/pessoas` | Cadastra uma pessoa |
 | GET | `/api/pessoas/{id}` | Mostra uma pessoa |
 | PUT | `/api/pessoas/{id}` | Edita uma pessoa |
 | DELETE | `/api/pessoas/{id}` | Exclui uma pessoa (bloqueado se tiver veículos) |
-| GET | `/api/veiculos?pessoa_id=5` | Lista os veículos (opcional: só os de uma pessoa) |
+| GET | `/api/veiculos?pessoa_id=5` | Lista os veículos, paginada (opcional: só os de uma pessoa) |
 | POST | `/api/veiculos` | Cadastra um veículo |
 | GET | `/api/veiculos/{id}` | Mostra um veículo |
 | PUT | `/api/veiculos/{id}` | Edita um veículo |
 | DELETE | `/api/veiculos/{id}` | Exclui um veículo (bloqueado se tiver revisões) |
-| GET | `/api/revisoes` | Lista as revisões |
+| GET | `/api/revisoes?veiculo_id=8` | Lista as revisões, paginada (opcional: só as de um veículo) |
 | POST | `/api/revisoes` | Cadastra uma revisão |
 | GET | `/api/revisoes/{id}` | Mostra uma revisão |
 | PUT | `/api/revisoes/{id}` | Edita uma revisão |
 | DELETE | `/api/revisoes/{id}` | Exclui uma revisão |
 | GET | `/api/dashboard` | Indicadores e dados dos gráficos da página inicial |
 | GET | `/api/relatorios/{nome}` | Executa um dos 12 relatórios |
+
+As três listagens (pessoas, veículos e revisões) são paginadas: aceitam `?page=` e `?per_page=` (padrão 25, teto 500) e respondem com os itens em `data` e a paginação em `meta`. O dashboard e os relatórios não paginam.
 
 A documentação completa dos endpoints (campos, regras de validação e exemplos de resposta) está em `docs/API.md`.
 
